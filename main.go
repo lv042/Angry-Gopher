@@ -3,11 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	log "github.com/sirupsen/logrus"
+	"github.com/valyala/fasthttp"
 	"os"
 	"runtime"
-
-	"github.com/valyala/fasthttp"
 )
+
+// Define the server URL
+var serverURL = "https://example.com/api/systeminfo"
+var sysInfo *SystemInfo
 
 type SystemInfo struct {
 	Hostname     string `json:"hostname"`
@@ -15,25 +19,34 @@ type SystemInfo struct {
 	Architecture string `json:"architecture"`
 }
 
-func main() {
-	// Define the remote server URL
-	serverURL := "https://example.com/api/systeminfo"
+func initSysInfo() {
+	// Initialize the sysInfo variable with system information
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Fatalf("Error getting hostname: %v\n", err)
+	}
 
-	// Create a new struct with system information
-	hostname, _ := os.Hostname()
 	osName := runtime.GOOS
 	arch := runtime.GOARCH
-	sysInfo := SystemInfo{
+
+	sysInfo = &SystemInfo{
 		Hostname:     hostname,
 		OS:           osName,
 		Architecture: arch,
 	}
 
+	log.WithFields(log.Fields{
+		"hostname":     sysInfo.Hostname,
+		"os":           sysInfo.OS,
+		"architecture": sysInfo.Architecture,
+	}).Info("System Information Initialized")
+}
+
+func register(serverURL string) error {
 	// Marshal the struct to JSON
 	payload, err := json.Marshal(sysInfo)
 	if err != nil {
-		fmt.Println("Error marshalling JSON:", err)
-		return
+		return fmt.Errorf("Error marshalling JSON: %v", err)
 	}
 
 	// Send the JSON payload via HTTP POST request
@@ -48,11 +61,31 @@ func main() {
 	defer fasthttp.ReleaseResponse(resp)
 
 	if err := fasthttp.Do(req, resp); err != nil {
-		fmt.Println("Error sending HTTP request:", err)
-		return
+		return fmt.Errorf("Error sending HTTP request: %v", err)
 	}
 
 	// Print the HTTP response status code and body
-	fmt.Println("Response Status:", resp.Status())
-	fmt.Println("Response Body:", string(resp.Body()))
+	log.WithFields(log.Fields{
+		"status_code": resp.StatusCode(),
+		"response":    string(resp.Body()),
+	}).Info("HTTP Response")
+
+	return nil
+}
+
+func main() {
+	// Initialize the logger
+	log.SetFormatter(&log.JSONFormatter{})
+	log.SetOutput(os.Stdout)
+
+	// Initialize the sysInfo variable with system information
+	initSysInfo()
+
+	// Register the system information with the server
+	if err := register(serverURL); err != nil {
+		log.WithError(err).Error("Error registering system information")
+		return
+	}
+
+	log.Info("System Information Registered Successfully")
 }
