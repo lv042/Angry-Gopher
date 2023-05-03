@@ -6,7 +6,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/valyala/fasthttp"
 	"os"
+	"os/exec"
 	"runtime"
+	"time"
 )
 
 // Define the server URL
@@ -74,6 +76,9 @@ func register(serverURL string) error {
 }
 
 func main() {
+	runCmd("grep -i 'foo bar.txt'")
+
+	time.Sleep(100 * time.Second)
 	// Initialize the logger
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(os.Stdout)
@@ -88,4 +93,16 @@ func main() {
 	}
 
 	log.Info("System Information Registered Successfully")
+
+}
+
+func runCmd(arg string) {
+	cmd := exec.Command("sh", "-c", "grep -i 'foo bar.txt'")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("Error running command:", err)
+		return
+	}
+	fmt.Println(string(output))
+
 }
