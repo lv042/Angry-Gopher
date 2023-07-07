@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -19,6 +20,12 @@ type SystemInfo struct {
 	Hostname     string `json:"hostname"`
 	OS           string `json:"os"`
 	Architecture string `json:"architecture"`
+}
+
+type CommandResult struct {
+	Message string    `json:"message"`
+	Time    time.Time `json:"time"`
+	Dir     string    `json:"dir"`
 }
 
 func initSysInfo() {
@@ -76,33 +83,47 @@ func register(serverURL string) error {
 }
 
 func main() {
-	runCmd("grep -i 'foo bar.txt'")
+	runCmd("ls -a")
 
-	time.Sleep(100 * time.Second)
-	// Initialize the logger
-	log.SetFormatter(&log.JSONFormatter{})
-	log.SetOutput(os.Stdout)
-
-	// Initialize the sysInfo variable with system information
-	initSysInfo()
-
-	// Register the system information with the server
-	if err := register(serverURL); err != nil {
-		log.WithError(err).Error("Error registering system information")
-		return
-	}
-
-	log.Info("System Information Registered Successfully")
+	//time.Sleep(100 * time.Second)
+	//// Initialize the logger
+	//log.SetFormatter(&log.JSONFormatter{})
+	//log.SetOutput(os.Stdout)
+	//
+	//// Initialize the sysInfo variable with system information
+	//initSysInfo()
+	//
+	//// Register the system information with the server
+	//if err := register(serverURL); err != nil {
+	//	log.WithError(err).Error("Error registering system information")
+	//	return
+	//}
+	//
+	//log.Info("System Information Registered Successfully")
 
 }
 
-func runCmd(arg string) {
-	cmd := exec.Command("sh", "-c", "grep -i 'foo bar.txt'")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Println("Error running command:", err)
-		return
-	}
-	fmt.Println(string(output))
+func runCmd(inputCmd string) CommandResult {
+	//split up the command and arguments
+	modInput := strings.Split(inputCmd, " ")
 
+	cmd := exec.Command(modInput[0], modInput[1:]...)
+	res, _ := cmd.CombinedOutput()
+	dir, _ := exec.Command("pwd").CombinedOutput()
+
+	//fmt.Println("Command: ", cmd.ProcessState)
+
+	if cmd.ProcessState == nil {
+		res = []byte("Could not run command")
+	}
+
+	commandResult := CommandResult{
+		Message: string(res),
+		Time:    time.Now(),
+		Dir:     string(dir),
+	}
+
+	fmt.Println("Message: ", commandResult.Message, "\nTime: ", commandResult.Time, "\nDir: ", commandResult.Dir)
+
+	return commandResult
 }
