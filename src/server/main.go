@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gofiber/fiber/v2"
+	dotenv "github.com/joho/godotenv"
 	"log"
 )
 
@@ -22,6 +24,10 @@ type Device struct {
 
 func main() {
 	app := fiber.New()
+	setupDotenv()
+
+	token, _ := CreateToken("test")
+	fmt.Print("Token works:", VerifyToken(token))
 
 	app.Post("/register", func(c *fiber.Ctx) error {
 		var systemInfo SystemInfo
@@ -46,5 +52,12 @@ func main() {
 	err := app.Listen(":3000")
 	if err != nil {
 		log.Fatal(err)
+	}
+}
+
+func setupDotenv() {
+	err := dotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
 	}
 }
