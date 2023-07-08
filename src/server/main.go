@@ -56,7 +56,7 @@ func main() {
 }
 
 func setupDotenv() {
-	err := dotenv.Load()
+	err := dotenv.Load("../.env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}

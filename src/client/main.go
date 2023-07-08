@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	dotenv "github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
 	"github.com/valyala/fasthttp"
 	"os"
@@ -126,4 +127,11 @@ func runCmd(inputCmd string) CommandResult {
 	fmt.Println("Message: ", commandResult.Message, "\nTime: ", commandResult.Time, "\nDir: ", commandResult.Dir)
 
 	return commandResult
+}
+
+func setupDotenv() {
+	err := dotenv.Load("../.env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 }
