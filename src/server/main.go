@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gofiber/fiber/v2"
 	dotenv "github.com/joho/godotenv"
 	"log"
@@ -26,9 +25,12 @@ func main() {
 	app := fiber.New()
 	setupDotenv()
 
-	token, _ := CreateToken("test")
-	fmt.Print("Token works:", VerifyToken(token))
+	setupRoutes(app)
+	serverListen(app)
 
+}
+
+func setupRoutes(app *fiber.App) {
 	app.Post("/register", func(c *fiber.Ctx) error {
 		var systemInfo SystemInfo
 
@@ -48,7 +50,9 @@ func main() {
 		return c.JSON(fiber.Map{"id": id})
 	})
 
-	//listen
+}
+
+func serverListen(app *fiber.App) {
 	err := app.Listen(":3000")
 	if err != nil {
 		log.Fatal(err)

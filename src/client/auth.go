@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/golang-jwt/jwt"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"time"
