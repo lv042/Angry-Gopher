@@ -3,6 +3,7 @@ package main
 import (
 	dotenv "github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 // Define the server URL
@@ -10,7 +11,13 @@ var serverURL = "https://localhost:3000/"
 var sysInfo *SystemInfo
 
 func main() {
-	runCmd("ls -a")
+	getSystemInfo()
+	err := register(serverURL)
+	if err != nil {
+		log.Info("Error registering system: ", err)
+		time.Sleep(10 * time.Second)
+		main()
+	}
 
 }
 

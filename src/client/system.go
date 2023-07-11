@@ -10,9 +10,10 @@ type SystemInfo struct {
 	Hostname     string `json:"hostname"`
 	OS           string `json:"os"`
 	Architecture string `json:"architecture"`
+	ID           int8   `json:"id"`
 }
 
-func initSysInfo() {
+func getSystemInfo() {
 	// Initialize the sysInfo variable with system information
 	hostname, err := os.Hostname()
 	if err != nil {

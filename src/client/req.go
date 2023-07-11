@@ -29,6 +29,16 @@ func register(serverURL string) error {
 		return fmt.Errorf("Error sending HTTP request: %v", err)
 	}
 
+	// Extract the ID from the response JSON and update the sysInfo struct
+	var response struct {
+		ID int8 `json:"id"`
+	}
+	if err := json.Unmarshal(resp.Body(), &response); err != nil {
+		return fmt.Errorf("Error parsing response JSON: %v", err)
+	}
+
+	sysInfo.ID = response.ID
+
 	// Print the HTTP response status code and body
 	log.WithFields(log.Fields{
 		"status_code": resp.StatusCode(),
