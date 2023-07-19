@@ -36,7 +36,7 @@ func VerifyToken(tokenString string) bool {
 	}
 }
 
-func CreateToken(host string) (string, error) {
+func GenerateToken(host string) (string, error) {
 	stringSecretKey = os.Getenv("JWT_SECRET")
 
 	if (stringSecretKey) == "" {
