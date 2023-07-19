@@ -12,6 +12,8 @@ import (
 
 var devices []Device
 
+const version = "0.0.1"
+
 type SystemInfo struct {
 	Hostname     string `json:"hostname"`
 	OS           string `json:"os"`
@@ -19,10 +21,15 @@ type SystemInfo struct {
 }
 
 type Device struct {
-	ID          int8       `json:"id"`
-	SystemInfo  SystemInfo // Updated: Made it public
-	LastOnline  int64
-	CommandList CommandList
+	ID              int8       `json:"id"`
+	SystemInfo      SystemInfo // Updated: Made it public
+	LastOnline      int64
+	CommandList     CommandList
+	InstructionList InstructionList
+}
+
+type InstructionList struct {
+	Instructions []string `json:"instructions"`
 }
 
 type CommandList struct {
