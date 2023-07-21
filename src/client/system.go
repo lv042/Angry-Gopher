@@ -10,7 +10,6 @@ type SystemInfo struct {
 	Hostname     string `json:"hostname"`
 	OS           string `json:"os"`
 	Architecture string `json:"architecture"`
-	ID           int8   `json:"id"`
 }
 
 func getSystemInfo() {

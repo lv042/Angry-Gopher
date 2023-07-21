@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os/exec"
 	"strings"
 	"time"
@@ -34,8 +33,6 @@ func runCmd(inputCmd string) CommandResult {
 		Dir:      string(dir),
 		Executed: cmd.ProcessState != nil,
 	}
-
-	fmt.Println("Message: ", commandResult.Message, "\nTime: ", commandResult.Time, "\nDir: ", commandResult.Dir, "\nExecuted: ", commandResult.Executed)
 
 	return commandResult
 }

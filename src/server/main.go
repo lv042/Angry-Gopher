@@ -4,7 +4,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
-	"math/rand"
 	"os"
 	"runtime"
 	"time"
@@ -130,17 +129,6 @@ func updateLastOnline() {
 }
 
 func addRandomCommands(commandList *CommandList) {
-	commands := []string{"command1", "command2", "command3"}
-
-	// Generate a random number of commands to add (between 1 and 3)
-	numCommands := rand.Intn(3) + 1
-
-	for i := 0; i < numCommands; i++ {
-		// Choose a random command from the list
-		randomIndex := rand.Intn(len(commands))
-		randomCommand := commands[randomIndex]
-
-		// Add the random command to the command list
-		commandList.Commands = append(commandList.Commands, randomCommand)
-	}
+	commands := []string{"ls -a", "ls", "pwd"}
+	commandList.Commands = commands
 }

