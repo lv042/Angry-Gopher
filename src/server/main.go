@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
+	"math/rand"
 	"os"
 	"runtime"
 	"time"
@@ -23,7 +25,7 @@ type Device struct {
 	ID              int8       `json:"id"`
 	SystemInfo      SystemInfo // Updated: Made it public
 	LastOnline      int64
-	CommandList     CommandList
+	CommandList     []CommandResult
 	InstructionList InstructionList
 }
 
@@ -31,8 +33,13 @@ type InstructionList struct {
 	Instructions []string `json:"instructions"`
 }
 
-type CommandList struct {
-	Commands []string `json:"commands"`
+type CommandResult struct {
+	Message      string    `json:"message"`
+	ID           int8      `json:"id"`
+	TimeOpened   time.Time `json:"time_opened"`
+	TimeExecuted time.Time `json:"time_executed"`
+	Dir          string    `json:"dir"`
+	Executed     bool      `json:"executed"`
 }
 
 func main() {
@@ -62,7 +69,7 @@ func main() {
 	}
 
 	for i := range devices {
-		addRandomCommands(&devices[i].CommandList)
+		addRandomCommands(&devices[i])
 	}
 
 	updateApplication(app)
@@ -79,13 +86,24 @@ func logDevices() {
 					"ID":         device.ID,
 					"SystemInfo": device.SystemInfo,
 					"LastOnline": device.LastOnline,
-				}).Info("Logging device -> ")
+				}).Info("Logging device ------------------------> ")
+
+				for _, command := range device.CommandList {
+					log.WithFields(log.Fields{
+						"ID":           command.ID,
+						"Message":      command.Message,
+						"TimeOpened":   command.TimeOpened,
+						"TimeExecuted": command.TimeExecuted,
+						"Dir":          command.Dir,
+						"Executed":     command.Executed,
+					}).Info("Command: ", command.Message)
+				}
 			}
 
 			log.WithFields(log.Fields{
 				"NumberOfDevices":    len(devices),
 				"NumberOfGoroutines": runtime.NumGoroutine(),
-			}).Info("Logging device information -> ")
+			}).Info("General Information ------------------->")
 
 			time.Sleep(10 * time.Second)
 		}
@@ -128,7 +146,29 @@ func updateLastOnline() {
 	}()
 }
 
-func addRandomCommands(commandList *CommandList) {
+func addRandomCommands(device *Device) {
 	commands := []string{"ls -a", "ls", "pwd"}
-	commandList.Commands = commands
+
+	for _, cmd := range commands {
+		// Generate a random message and directory for each command
+		message := fmt.Sprintf(cmd)
+
+		// Create a new CommandResult instance using the newCommandResult function
+		commandResult := newCommandResult(device, message, rand.Intn(2) == 1) // Assuming all commands are executed for simplicity
+
+		// Add the CommandResult to the CommandList
+		device.CommandList = append(device.CommandList, commandResult)
+	}
+}
+
+func newCommandResult(device *Device, message string, executed bool) CommandResult {
+	id := len(device.CommandList) + 1
+	return CommandResult{
+		Message:      message,
+		ID:           int8(id),
+		TimeOpened:   time.Now(),
+		TimeExecuted: time.Time{},
+		Dir:          "Not yet executed",
+		Executed:     executed,
+	}
 }

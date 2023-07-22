@@ -69,7 +69,7 @@ func register(baseURL, token string, sysInfo *SystemInfo) (int, error) {
 	return id, nil
 }
 
-func receiveCommands(baseURL string, token string, id int) ([]string, error) {
+func getCommands(baseURL string, token string, id int) ([]string, error) {
 	apiEndpoint := baseURL + "/cmd/" + strconv.Itoa(int(id))
 
 	// Prepare the request
@@ -116,3 +116,47 @@ func receiveCommands(baseURL string, token string, id int) ([]string, error) {
 //	apiEndpoint := baseURL + "/ins/" + strconv.Itoa(int(id))
 //
 //}
+
+func postCommandResult(baseURL, token string, id int, command, result string) error {
+	apiEndpoint := baseURL + "/post-cmd/" + strconv.Itoa(id)
+
+	// Prepare the request payload
+	payload := map[string]string{
+		"command": command,
+		"result":  result,
+	}
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	// Prepare the request
+	req, err := http.NewRequest("POST", apiEndpoint, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return err
+	}
+
+	// Set the JWT token in the request header
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	// Make the request to the API
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(resp.Body)
+
+	// Check the response status code
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("API request failed with status code %d", resp.StatusCode)
+	}
+
+	return nil
+}

@@ -45,13 +45,46 @@ func setupRoutes(app *fiber.App) {
 	protected.Get("/cmd/:id", func(c *fiber.Ctx) error {
 		id, err := strconv.Atoi(c.Params("id"))
 		if err != nil || id < 1 || id > len(devices) {
-			return fiber.ErrBadRequest
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"message": "Device with ID " + strconv.Itoa(id) + " does not exist",
+			})
 		}
 
 		device := devices[id-1]
 
-		// Return the command list for the device
-		return c.JSON(device.CommandList)
+		// Get the list of CommandResults for the device
+		commandResults := make([]CommandResult, len(device.CommandList))
+		copy(commandResults, device.CommandList)
+
+		return c.JSON(commandResults)
+	})
+
+	protected.Post("/cmd/:id", func(c *fiber.Ctx) error {
+		id, err := strconv.Atoi(c.Params("id"))
+		if err != nil || id < 1 || id > len(devices) {
+			return fiber.ErrBadRequest
+		}
+
+		var updatedCommandResult CommandResult
+		if err := c.BodyParser(&updatedCommandResult); err != nil {
+			return fiber.ErrBadRequest
+		}
+
+		// Find the index of the CommandResult in the device's CommandList
+		var commandIndex int
+		device := devices[id-1]
+		for i, cmdResult := range device.CommandList {
+			if cmdResult.ID == updatedCommandResult.ID {
+				commandIndex = i
+				break
+			}
+		}
+
+		// Replace the old CommandResult with the updated one
+		device.CommandList[commandIndex] = updatedCommandResult
+		devices[id-1] = device
+
+		return c.JSON(fiber.Map{"message": "Command result updated successfully"})
 	})
 
 	protected.Get("/ins/:id", func(c *fiber.Ctx) error {
@@ -80,6 +113,7 @@ func setupRoutes(app *fiber.App) {
 		clientVersion := request.Version
 
 		if clientVersion != version {
+			return c.JSON(fiber.Map{"message": "You are not on the newest version"})
 			//@TODO: Return the newest version
 
 		}
@@ -106,16 +140,22 @@ func setupRoutes(app *fiber.App) {
 			return fiber.ErrBadRequest
 		}
 
-		device := devices[id-1]
+		device := &devices[id-1] // Pass a pointer to Device
 
-		device.CommandList.Commands = append(device.CommandList.Commands, request.Commands...)
+		// Generate new CommandResult instances for each command in request.Commands
+		for _, cmd := range request.Commands {
+			// Create a new CommandResult instance using the newCommandResult function
+			commandResult := newCommandResult(device, cmd, true)
+
+			// Add the CommandResult to the CommandList
+			device.CommandList = append(device.CommandList, commandResult)
+		}
+
+		// Append instructions to InstructionList
 		device.InstructionList.Instructions = append(device.InstructionList.Instructions, request.Instructions...)
-
-		devices[id-1] = device
 
 		return c.JSON(fiber.Map{"message": "Added commands and instructions to device"})
 	})
-
 }
 
 func authMiddleware(c *fiber.Ctx) error {

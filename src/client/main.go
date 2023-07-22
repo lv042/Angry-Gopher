@@ -52,7 +52,7 @@ func work() {
 }
 
 func commandWorkFlow() {
-	commands, err := receiveCommands(serverURL, token, 1)
+	commands, err := getCommands(serverURL, token, 1)
 	if err != nil {
 		log.Info("Error while receiving tasks: ", err)
 		return
@@ -62,17 +62,36 @@ func commandWorkFlow() {
 		log.Info("Received no commands")
 		return
 	}
-	//TODO: Add a check to see if the command is already executed
+
 	for _, command := range commands {
-		result := runCmd(command)
-		log.WithFields(log.Fields{
-			"\ncommand":  command,
-			"\nid":       client_id,
-			"\nMessage":  result.Message,
-			"\nTime":     result.Time,
-			"\nDir":      result.Dir,
-			"\nExecuted": result.Executed,
-		}).Info("Command:")
+		// Check if the command is already executed
+		executed, err := checkCommandExecution(serverURL, token, 1, command)
+		if err != nil {
+			log.Info("Error checking command execution status: ", err)
+			return
+		}
+
+		if !executed {
+			// Execute the command
+			result := runCmd(command)
+
+			// Log the command result
+			log.WithFields(log.Fields{
+				"command":  command,
+				"id":       client_id,
+				"Message":  result.Message,
+				"Time":     result.Time,
+				"Dir":      result.Dir,
+				"Executed": result.Executed,
+			}).Info("Command Result:")
+
+			// Send the command result back to the server
+			err := postCommandResult(serverURL, token, 1, command, result.Message)
+			if err != nil {
+				log.Info("Error posting command result: ", err)
+				return
+			}
+		}
 		time.Sleep(3 * time.Second)
 	}
 }
