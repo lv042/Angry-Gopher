@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"math/rand"
 	"runtime"
 	"time"
 )
@@ -68,7 +67,7 @@ func generateFakeData() {
 			message := fmt.Sprintf(cmd)
 
 			// Create a new CommandResult instance using the newCommandResult function
-			commandResult := newCommandResult(&devices[i], message, rand.Intn(2) == 1) // Assuming all commands are executed for simplicity
+			commandResult := newCommandResult(&devices[i], message, false) // Assuming all commands are executed for simplicity
 
 			// Add the CommandResult to the CommandList
 			devices[i].CommandList = append(devices[i].CommandList, commandResult)
