@@ -16,7 +16,7 @@ func handleRegister(c *fiber.Ctx) error {
 	// Get the highest id and increment
 	id := len(devices) + 1
 	device := Device{
-		ID:         int8(id),
+		ID:         int32(id),
 		SystemInfo: systemInfo,
 		LastOnline: 0,
 	}

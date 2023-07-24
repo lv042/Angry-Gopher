@@ -2,11 +2,14 @@ package main
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var devices []Device
 var app = fiber.New()
 var appConfig AppConfig
+var mongoClient *mongo.Client
+var collection *mongo.Collection
 
 func main() {
 	//must be initialized first
@@ -15,6 +18,15 @@ func main() {
 	//setup config
 	appConfig = newAppConfig()
 	checkForSecret()
+
+	// Initialize MongoDB client
+	mongoClient = initMongoClient()
+
+	// Get the MongoDB collection
+	collection = mongoClient.Database("AngryGopher").Collection("Devices")
+
+	// Load devices data from MongoDB
+	loadDevicesFromMongoDB()
 
 	//for production
 	displayTestJWT()
@@ -32,10 +44,5 @@ func main() {
 func updateApplication(app *fiber.App) {
 	updateLastOnline()
 	logDevices()
-
-	go func() {
-		for {
-			//TODO: update this to use a database
-		}
-	}()
+	monitorChanges()
 }

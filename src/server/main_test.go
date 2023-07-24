@@ -20,7 +20,7 @@ func init() {
 	go func() { // Initialize the test server
 		main()
 	}()
-	time.Sleep(3 * time.Second) // Wait for the server to start
+	time.Sleep(10 * time.Second) // Wait for the server to start
 
 	eraseAllData()
 	generateFakeData()
@@ -67,7 +67,7 @@ func TestRegister(t *testing.T) {
 	}
 
 	// Parse the response JSON
-	var responseBody map[string]int8
+	var responseBody map[string]int32
 	err = json.NewDecoder(res.Body).Decode(&responseBody)
 	if err != nil {
 		t.Fatalf("Failed to parse response JSON: %v", err)
@@ -78,7 +78,7 @@ func TestRegister(t *testing.T) {
 		t.Fatalf("Response JSON does not contain \"id\" field")
 	}
 
-	var expected int8 = 3
+	var expected int32 = 3
 	if responseBody["id"] != expected {
 		t.Fatalf("Expected id %d but got %d", expected, responseBody["id"])
 	}
@@ -467,7 +467,7 @@ func TestGenerateFakeData(t *testing.T) {
 	// Check each device in the devices slice
 	for i, device := range devices {
 		// Check the device ID
-		expectedID := int8(i + 1)
+		expectedID := int32(i + 1)
 		if device.ID != expectedID {
 			t.Fatalf("Device ID does not match expected value. Expected: %d, Got: %d", expectedID, device.ID)
 		}
@@ -489,7 +489,7 @@ func TestGenerateFakeData(t *testing.T) {
 				t.Fatalf("Command message does not match expected value. Expected: %s, Got: %s", expectedCommands[j], commandResult.Command)
 			}
 
-			if commandResult.ID != int8(j+1) {
+			if commandResult.ID != int32(j+1) {
 				t.Fatalf("Command ID does not match expected value. Expected: %d, Got: %d", j+1, commandResult.ID)
 			}
 
