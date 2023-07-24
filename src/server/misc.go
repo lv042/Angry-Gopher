@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
-	"os"
 	"runtime"
 	"time"
 )
@@ -124,15 +123,10 @@ func updateLastOnline() {
 func setupDotenv() {
 	err := godotenv.Load("../.env")
 	if err != nil {
-		log.Info("Error loading .env file: ", err)
-		log.Info("This is not a problem if you are running the server in production")
+		log.Warn("Error loading .env file: ", err)
+		log.Warn("This is not a problem if you are running the server in production")
 	}
 
-	// print all the env variables
-	log.Println("Environment variables:")
-	for _, e := range os.Environ() {
-		log.Println(e)
-	}
 }
 
 func checkForSecret() {
@@ -144,7 +138,10 @@ func checkForSecret() {
 func displayTestJWT() {
 	testJWT, err := GenerateToken("admin", -1, time.Hour*24*30)
 	if err != nil {
-		log.Info("Error generating test JWT: ", err)
+		log.Warn("Error generating test JWT: ", err)
 	}
-	log.Info("Test JWT: ", testJWT)
+	//log highlighted
+	log.WithFields(log.Fields{
+		"JWT": testJWT,
+	}).Info("Test JWT")
 }

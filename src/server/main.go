@@ -9,12 +9,15 @@ var app = fiber.New()
 var appConfig AppConfig
 
 func main() {
-	//setup config
-	appConfig = newAppConfig()
-
 	//initialize the dotenv file
 	setupDotenv()
+
+	//setup config
+	appConfig = newAppConfig()
 	checkForSecret()
+
+	//for production
+	displayTestJWT()
 
 	//all tasks that need to be done while the server is running
 	updateApplication(app)
