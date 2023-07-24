@@ -9,11 +9,12 @@ var app = fiber.New()
 var appConfig AppConfig
 
 func main() {
-	//initialize the dotenv file
-	//setupDotenv()
-
 	//setup config
 	appConfig = newAppConfig()
+
+	//initialize the dotenv file
+	setupDotenv()
+	checkForSecret()
 
 	//all tasks that need to be done while the server is running
 	updateApplication(app)

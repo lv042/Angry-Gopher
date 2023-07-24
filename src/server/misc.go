@@ -124,12 +124,19 @@ func updateLastOnline() {
 func setupDotenv() {
 	err := godotenv.Load("../.env")
 	if err != nil {
-		log.Fatal("Error loading .env file: ", err)
+		log.Info("Error loading .env file: ", err)
+		log.Info("This is not a problem if you are running the server in production")
 	}
 
 	// print all the env variables
 	log.Println("Environment variables:")
 	for _, e := range os.Environ() {
 		log.Println(e)
+	}
+}
+
+func checkForSecret() {
+	if appConfig.SecretKey == "" {
+		log.Info("JWT_SECRET environment variable not set")
 	}
 }
