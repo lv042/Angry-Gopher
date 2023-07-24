@@ -140,3 +140,11 @@ func checkForSecret() {
 		log.Info("JWT_SECRET environment variable not set")
 	}
 }
+
+func displayTestJWT() {
+	testJWT, err := GenerateToken("admin", -1, time.Hour*24*30)
+	if err != nil {
+		log.Info("Error generating test JWT: ", err)
+	}
+	log.Info("Test JWT: ", testJWT)
+}
