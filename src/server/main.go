@@ -10,7 +10,7 @@ var appConfig AppConfig
 
 func main() {
 	//initialize the dotenv file
-	setupDotenv()
+	//setupDotenv()
 
 	//setup config
 	appConfig = newAppConfig()
