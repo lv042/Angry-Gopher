@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
+	"os"
 	"runtime"
 	"time"
 )
 
 func logDevices() {
+	time.Sleep(3 * time.Second) // Wait for the server to start
 	go func() {
 		for {
 			for _, device := range devices {
@@ -19,13 +22,27 @@ func logDevices() {
 
 				for _, command := range device.CommandList {
 					log.WithFields(log.Fields{
+						"Command":      command.Command,
+						"Response":     command.Response,
 						"ID":           command.ID,
-						"Message":      command.Message,
 						"TimeOpened":   command.TimeOpened,
 						"TimeExecuted": command.TimeExecuted,
 						"Dir":          command.Dir,
 						"Executed":     command.Executed,
-					}).Info("Command: ", command.Message)
+						"Tries":        command.Tries,
+					}).Info("Command: ", command.Command)
+				}
+				for _, instruction := range device.InstructionList {
+					log.WithFields(log.Fields{
+						"Instruction":  instruction.Instruction,
+						"Response":     instruction.Response,
+						"ID":           instruction.ID,
+						"TimeOpened":   instruction.TimeOpened,
+						"TimeExecuted": instruction.TimeExecuted,
+						"Dir":          instruction.Dir,
+						"Executed":     instruction.Executed,
+						"Tries":        instruction.Tries,
+					}).Info("Instruction: ", instruction.Instruction)
 				}
 			}
 
@@ -67,10 +84,52 @@ func generateFakeData() {
 			message := fmt.Sprintf(cmd)
 
 			// Create a new CommandResult instance using the newCommandResult function
-			commandResult := newCommandResult(&devices[i], message, false) // Assuming all commands are executed for simplicity
+			commandResult := newCommandResult(&devices[i], message) // Assuming all commands are executed for simplicity
 
 			// Add the CommandResult to the CommandList
 			devices[i].CommandList = append(devices[i].CommandList, commandResult)
 		}
+	}
+
+	for i := range devices {
+		instructions := []string{"install", "update", "uninstall"}
+
+		for _, instruction := range instructions {
+			// Generate a random message and directory for each command
+			message := fmt.Sprintf(instruction)
+
+			// Create a new InstructionResult instance using the newInstructionResult function
+			instructionResult := newInstructionResult(&devices[i], message) // Assuming all instructions are executed for simplicity
+
+			// Add the InstructionResult to the InstructionList
+			devices[i].InstructionList = append(devices[i].InstructionList, instructionResult)
+		}
+
+	}
+}
+
+func updateLastOnline() {
+	go func() {
+		for {
+			for i := range devices {
+				// Increment the LastOnline count by 1
+				devices[i].LastOnline++
+			}
+
+			time.Sleep(1 * time.Second)
+		}
+	}()
+}
+
+func setupDotenv() {
+	err := godotenv.Load("../.env")
+	if err != nil {
+		log.Fatal("Error loading .env file: ", err)
+	}
+
+	// print all the env variables
+	log.Println("Environment variables:")
+	for _, e := range os.Environ() {
+		log.Println(e)
 	}
 }

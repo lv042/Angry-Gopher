@@ -64,14 +64,7 @@ func commandWorkFlow() {
 	}
 
 	for _, command := range commands {
-		// Check if the command is already executed
-		executed, err := checkCommandExecution(serverURL, token, 1, command)
-		if err != nil {
-			log.Info("Error checking command execution status: ", err)
-			return
-		}
-
-		if !executed {
+		if command != "" {
 			// Execute the command
 			result := runCmd(command)
 
@@ -79,7 +72,7 @@ func commandWorkFlow() {
 			log.WithFields(log.Fields{
 				"command":  command,
 				"id":       client_id,
-				"Message":  result.Message,
+				"Response": result.Message,
 				"Time":     result.Time,
 				"Dir":      result.Dir,
 				"Executed": result.Executed,

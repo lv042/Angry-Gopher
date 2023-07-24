@@ -7,10 +7,13 @@ import (
 )
 
 type CommandResult struct {
-	Message  string    `json:"message"`
-	Time     time.Time `json:"time"`
-	Dir      string    `json:"dir"`
-	Executed bool      `json:"executed"`
+	Message      string    `json:"message"`
+	ID           int8      `json:"id"`
+	TimeOpened   time.Time `json:"time_opened"`
+	TimeExecuted time.Time `json:"time_executed"`
+	Dir          string    `json:"dir"`
+	Executed     bool      `json:"executed"`
+	Tries        int8      `json:"tries"`
 }
 
 func runCmd(inputCmd string) CommandResult {

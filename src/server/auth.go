@@ -2,19 +2,15 @@ package main
 
 import (
 	"fmt"
+	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt"
 	"log"
-	"os"
 	"time"
 )
 
-var stringSecretKey = ""
-var secretKey = []byte(stringSecretKey)
-
 func VerifyToken(tokenString string) bool {
-	stringSecretKey = os.Getenv("JWT_SECRET")
 
-	if (stringSecretKey) == "" {
+	if appConfig.SecretKey == "" {
 		log.Fatal("JWT_SECRET environment variable not set")
 	}
 
@@ -22,25 +18,30 @@ func VerifyToken(tokenString string) bool {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return secretKey, nil
+		return []byte(appConfig.SecretKey), nil
 	})
 
 	if err != nil {
 		return false
 	}
 
-	if _, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		return true
-	} else {
-		return false
+	// Check if the token is valid and not expired
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		expirationTime := time.Unix(int64(claims["exp"].(float64)), 0)
+		return time.Now().Before(expirationTime)
 	}
+
+	return false
 }
 
-func GenerateToken(host string) (string, error) {
-	stringSecretKey = os.Getenv("JWT_SECRET")
+func GenerateToken(host string, id int, validity time.Duration) (string, error) {
 
-	if (stringSecretKey) == "" {
+	if appConfig.SecretKey == "" {
 		log.Fatal("JWT_SECRET environment variable not set")
+	}
+
+	if host == "" {
+		return "", fmt.Errorf("host cannot be empty")
 	}
 
 	token := jwt.New(jwt.SigningMethodHS256)
@@ -48,14 +49,41 @@ func GenerateToken(host string) (string, error) {
 	claims := token.Claims.(jwt.MapClaims)
 
 	claims["authorized"] = true
-	claims["user"] = host
-	claims["exp"] = time.Now().Add(time.Hour * 24 * 7).Unix()
+	claims["id"] = id
+	claims["host"] = host
+	claims["exp"] = time.Now().Add(validity).Unix()
 
-	tokenString, err := token.SignedString(secretKey)
+	tokenString, err := token.SignedString([]byte(appConfig.SecretKey))
 
 	if err != nil {
 		return "", err
 	}
 
 	return tokenString, nil
+}
+
+func authMiddleware(c *fiber.Ctx) error {
+	token := c.Get("Authorization")
+
+	// Check if the token is present and properly formatted
+	if token == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Missing or invalid token",
+		})
+	}
+
+	//Search if Bearer is in the string
+	if len(token) > 6 && token[:7] == "Bearer " {
+		token = token[7:]
+	}
+
+	tokenValid := VerifyToken(token)
+
+	if !tokenValid {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Invalid token",
+		})
+	}
+
+	return c.Next()
 }

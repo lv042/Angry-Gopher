@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -14,14 +16,19 @@ import (
 var jwtToken string
 
 func init() {
+
 	go func() { // Initialize the test server
 		main()
 	}()
+	time.Sleep(1 * time.Second) // Wait for the server to start
 
-	//generate token
 	setupDotenv()
+	eraseAllData()
+	generateFakeData()
+
 	var err error
-	jwtToken, err = GenerateToken("testing")
+	jwtToken, err = GenerateToken("testing", 0, 1*time.Hour)
+	log.Info("JWT Token: ", jwtToken)
 	if err != nil {
 		panic(err)
 	}
@@ -157,53 +164,69 @@ func TestGetCommandList(t *testing.T) {
 	// Define the expected commands based on the generated fake data
 	expectedCommands := []CommandResult{
 		{
-			Message:      "ls -a",
+			Command:      "ls -a",
+			Response:     "Not yet executed",
 			ID:           1,
 			TimeOpened:   devices[deviceIndex].CommandList[0].TimeOpened,
 			TimeExecuted: devices[deviceIndex].CommandList[0].TimeExecuted,
 			Dir:          devices[deviceIndex].CommandList[0].Dir,
 			Executed:     false,
+			Tries:        0,
 		},
 		{
-			Message:      "ls",
+			Command:      "ls",
+			Response:     "Not yet executed",
 			ID:           2,
 			TimeOpened:   devices[deviceIndex].CommandList[1].TimeOpened,
 			TimeExecuted: devices[deviceIndex].CommandList[1].TimeExecuted,
 			Dir:          devices[deviceIndex].CommandList[1].Dir,
 			Executed:     false,
+			Tries:        0,
 		},
 		{
-			Message:      "pwd",
+			Command:      "pwd",
+			Response:     "Not yet executed",
 			ID:           3,
 			TimeOpened:   devices[deviceIndex].CommandList[2].TimeOpened,
 			TimeExecuted: devices[deviceIndex].CommandList[2].TimeExecuted,
 			Dir:          devices[deviceIndex].CommandList[2].Dir,
 			Executed:     false,
+			Tries:        0,
 		},
 	}
-
 	// Check if the response contains the expected command results
 	for i, expectedCmd := range expectedCommands {
 		if !compareCommandResults(expectedCmd, commandResults[i]) {
+			//show the difference
+			log.Info("Expected: ", expectedCmd)
+			log.Info("Got: ", commandResults[i])
 			t.Fatalf("Command result with ID %d does not match the expected command result", expectedCmd.ID)
 		}
 	}
 }
 
 func compareCommandResults(expected, actual CommandResult) bool {
-	return expected.Message == actual.Message &&
-		expected.ID == actual.ID &&
-		expected.TimeOpened.Equal(actual.TimeOpened) &&
-		expected.TimeExecuted.Equal(actual.TimeExecuted) &&
-		expected.Dir == actual.Dir &&
-		expected.Executed == actual.Executed
+	// If the time fields are equal, set them to zero time to compare as nil
+	if expected.TimeOpened.UTC().Equal(actual.TimeOpened.UTC()) {
+		expected.TimeOpened = time.Time{}
+		actual.TimeOpened = time.Time{}
+	}
+
+	if expected.TimeExecuted.UTC().Equal(actual.TimeExecuted.UTC()) {
+		expected.TimeExecuted = time.Time{}
+		actual.TimeExecuted = time.Time{}
+	}
+
+	// Perform the deep equal comparison after setting time fields to zero time
+	return reflect.DeepEqual(expected, actual)
 }
 
 func TestUpdateCommandResult(t *testing.T) {
 	// Prepare the test request body
 	updatedCommandResult := CommandResult{
 		ID:           1,
-		Message:      "Updated message",
+		Command:      "Updated command",
+		Response:     "Updated message",
 		TimeOpened:   time.Now(),
 		TimeExecuted: time.Now(),
 		Dir:          "/updated/directory",
@@ -247,38 +270,148 @@ func TestUpdateCommandResult(t *testing.T) {
 	}
 }
 
-//func TestGetInstructionList(t *testing.T) {
-//	// Create a new test request and response recorder
-//	req := httptest.NewRequest(http.MethodGet, "/ins/1", nil)
-//	req.Header.Set("Authorization", "Bearer "+jwt_token)
-//	res, err := app.Test(req)
-//	if err != nil {
-//		t.Fatalf("Failed to perform test request: %v", err)
-//	}
-//	defer func(Body io.ReadCloser) {
-//		err := Body.Close()
-//		if err != nil {
-//			t.Fatalf("Failed to close response body: %v", err)
-//		}
-//	}(res.Body)
-//
-//	// Check the response status code
-//	if res.StatusCode != http.StatusOK {
-//		t.Fatalf("Expected status code %d but got %d", http.StatusOK, res.StatusCode)
-//	}
-//
-//	// Parse the response JSON
-//	var instructionList InstructionList
-//	err = json.NewDecoder(res.Body).Decode(&instructionList)
-//	if err != nil {
-//		t.Fatalf("Failed to parse response JSON: %v", err)
-//	}
-//
-//	// Assuming there are some instructions in the device at index 0
-//	if len(instructionList.Instructions) == 0 {
-//		t.Fatalf("Expected non-empty instruction list, but got an empty list")
-//	}
-//}
+func TestGetInstructionList(t *testing.T) {
+	// Assuming there are at least two devices with instruction lists generated in the fake data
+	// Fetch the instruction list for the first device (index 0) for simplicity
+	deviceIndex := 0
+
+	// Create a new test request and response recorder
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/ins/%d", devices[deviceIndex].ID), nil)
+	req.Header.Set("Authorization", "Bearer "+jwtToken)
+	res, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("Failed to perform test request: %v", err)
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			t.Fatalf("Failed to close response body: %v", err)
+		}
+	}(res.Body)
+
+	// Check the response status code
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected status code %d but got %d", http.StatusOK, res.StatusCode)
+	}
+
+	// Parse the response JSON
+	var instructionResults []InstructionResult
+	err = json.NewDecoder(res.Body).Decode(&instructionResults)
+	if err != nil {
+		t.Fatalf("Failed to parse response JSON: %v", err)
+	}
+
+	// Check if the number of instruction results in the response matches the expected count
+	expectedInstructionCount := 3 // As per the example, there are three instructions generated by generateFakeData
+	if len(instructionResults) != expectedInstructionCount {
+		t.Fatalf("Expected %d instruction results, but got %d", expectedInstructionCount, len(instructionResults))
+	}
+
+	// Define the expected instructions based on the generated fake data
+	expectedInstructions := []InstructionResult{
+		{
+			Instruction:  "install",
+			Response:     "Not yet executed",
+			ID:           1,
+			TimeOpened:   devices[deviceIndex].InstructionList[0].TimeOpened,
+			TimeExecuted: devices[deviceIndex].InstructionList[0].TimeExecuted,
+			Dir:          devices[deviceIndex].InstructionList[0].Dir,
+			Executed:     false,
+			Tries:        0,
+		},
+		{
+			Instruction:  "update",
+			Response:     "Not yet executed",
+			ID:           2,
+			TimeOpened:   devices[deviceIndex].InstructionList[1].TimeOpened,
+			TimeExecuted: devices[deviceIndex].InstructionList[1].TimeExecuted,
+			Dir:          devices[deviceIndex].InstructionList[1].Dir,
+			Executed:     false,
+			Tries:        0,
+		},
+		{
+			Instruction:  "uninstall",
+			Response:     "Not yet executed",
+			ID:           3,
+			TimeOpened:   devices[deviceIndex].InstructionList[2].TimeOpened,
+			TimeExecuted: devices[deviceIndex].InstructionList[2].TimeExecuted,
+			Dir:          devices[deviceIndex].InstructionList[2].Dir,
+			Executed:     false,
+			Tries:        0,
+		},
+	}
+	// Check if the response contains the expected instruction results
+	for i, expectedInst := range expectedInstructions {
+		if !compareInstructionResults(expectedInst, instructionResults[i]) {
+			t.Fatalf("Instruction result with ID %d does not match the expected instruction result", expectedInst.ID)
+		}
+	}
+}
+
+func compareInstructionResults(expected, actual InstructionResult) bool {
+	// If the time fields are equal, set them to zero time to compare as nil
+	if expected.TimeOpened.UTC().Equal(actual.TimeOpened.UTC()) {
+		expected.TimeOpened = time.Time{}
+		actual.TimeOpened = time.Time{}
+	}
+
+	if expected.TimeExecuted.UTC().Equal(actual.TimeExecuted.UTC()) {
+		expected.TimeExecuted = time.Time{}
+		actual.TimeExecuted = time.Time{}
+	}
+
+	// Perform the deep equal comparison after setting time fields to zero time
+	return reflect.DeepEqual(expected, actual)
+}
+
+func TestUpdateInstructionResult(t *testing.T) {
+	// Prepare the test request body
+	updatedInstructionResult := InstructionResult{
+		ID:           1,
+		Instruction:  "Updated instruction",
+		Response:     "Updated response",
+		TimeOpened:   time.Now(),
+		TimeExecuted: time.Now(),
+		Dir:          "/updated/directory",
+		Executed:     true,
+	}
+	updatedBodyJSON, err := json.Marshal(updatedInstructionResult)
+	if err != nil {
+		t.Fatalf("Failed to marshal updated instruction result: %v", err)
+	}
+
+	// Create a new test request and response recorder
+	req := httptest.NewRequest(http.MethodPost, "/ins/1", bytes.NewReader(updatedBodyJSON))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+jwtToken)
+	res, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("Failed to perform test request: %v", err)
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			t.Fatalf("Failed to close response body: %v", err)
+		}
+	}(res.Body)
+
+	// Check the response status code
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected status code %d but got %d", http.StatusOK, res.StatusCode)
+	}
+
+	// Parse the response JSON
+	var responseBody map[string]string
+	err = json.NewDecoder(res.Body).Decode(&responseBody)
+	if err != nil {
+		t.Fatalf("Failed to parse response JSON: %v", err)
+	}
+
+	expected := "Instruction result updated successfully"
+	if responseBody["message"] != expected {
+		t.Fatalf("Expected message %s but got %s", expected, responseBody["message"])
+	}
+}
 
 func TestCheckVersion(t *testing.T) {
 	// Prepare the test request body
@@ -353,8 +486,8 @@ func TestGenerateFakeData(t *testing.T) {
 		}
 
 		for j, commandResult := range device.CommandList {
-			if commandResult.Message != expectedCommands[j] {
-				t.Fatalf("Command message does not match expected value. Expected: %s, Got: %s", expectedCommands[j], commandResult.Message)
+			if commandResult.Command != expectedCommands[j] {
+				t.Fatalf("Command message does not match expected value. Expected: %s, Got: %s", expectedCommands[j], commandResult.Command)
 			}
 
 			if commandResult.ID != int8(j+1) {
@@ -380,5 +513,126 @@ func TestGenerateFakeData(t *testing.T) {
 				t.Fatalf("Command Executed is not a boolean value")
 			}
 		}
+	}
+}
+
+func TestGenerateToken_InvalidInput(t *testing.T) {
+	// Test generating token with an empty username
+	token, err := GenerateToken("", 0, 1*time.Hour)
+	if err == nil {
+		t.Fatalf("Expected error but go,t nil")
+	}
+	if token != "" {
+		t.Fatalf("Expected empty token but got %s", token)
+	}
+}
+
+func TestVerifyToken_ExpiredToken(t *testing.T) {
+	expiredToken, err := GenerateToken("test_user", 0, 1*time.Nanosecond)
+
+	//wait to expire
+	time.Sleep(500 * time.Millisecond)
+	if err != nil {
+		t.Fatalf("Failed to generate expired token: %v", err)
+	}
+
+	// Verify the expired token
+	valid := VerifyToken(expiredToken)
+	if valid {
+		t.Fatal("Expired token verification should have failed")
+	}
+}
+
+func TestVerifyToken_TamperedToken(t *testing.T) {
+	// Generate a valid token for testing
+	validToken, err := GenerateToken("test_user", 0, 10*time.Minute)
+	if err != nil {
+		t.Fatalf("Failed to generate valid token: %v", err)
+	}
+
+	// Tamper with the token by appending some random data
+	tamperedToken := validToken + "random_data"
+
+	// Verify the tampered token
+	valid := VerifyToken(tamperedToken)
+	if valid {
+		t.Fatal("Tampered token verification should have failed")
+	}
+}
+
+func TestAuthMiddleware_NoToken(t *testing.T) {
+	// Create a new test request and response recorder without a token
+	req := httptest.NewRequest(http.MethodGet, "/devices", nil)
+	res, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("Failed to perform test request: %v", err)
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			t.Fatalf("Failed to close response body: %v", err)
+		}
+	}(res.Body)
+
+	// Check the response status code
+	if res.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("Expected status code %d but got %d", http.StatusUnauthorized, res.StatusCode)
+	}
+}
+
+func TestAuthMiddleware_ExpiredToken(t *testing.T) {
+	// Generate an expired token with a very short expiration time for testing
+	expiredToken, err := GenerateToken("test_user", 0, 1*time.Nanosecond)
+	if err != nil {
+		t.Fatalf("Failed to generate expired token: %v", err)
+	}
+
+	// Create a new test request and response recorder with the expired token
+	req := httptest.NewRequest(http.MethodGet, "/devices", nil)
+	req.Header.Set("Authorization", "Bearer "+expiredToken)
+	res, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("Failed to perform test request: %v", err)
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			t.Fatalf("Failed to close response body: %v", err)
+		}
+	}(res.Body)
+
+	// Check the response status code
+	if res.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("Expected status code %d but got %d", http.StatusUnauthorized, res.StatusCode)
+	}
+}
+
+func TestAuthMiddleware_TamperedToken(t *testing.T) {
+	// Generate a valid token for testing
+	validToken, err := GenerateToken("test_user", 0, 10*time.Minute)
+	if err != nil {
+		t.Fatalf("Failed to generate valid token: %v", err)
+	}
+
+	// Tamper with the token by appending some random data
+	tamperedToken := validToken + "random_data"
+
+	// Create a new test request and response recorder with the tampered token
+	req := httptest.NewRequest(http.MethodGet, "/devices", nil)
+	req.Header.Set("Authorization", "Bearer "+tamperedToken)
+	res, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("Failed to perform test request: %v", err)
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			t.Fatalf("Failed to close response body: %v", err)
+		}
+	}(res.Body)
+
+	// Check the response status code
+	if res.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("Expected status code %d but got %d", http.StatusUnauthorized, res.StatusCode)
 	}
 }
