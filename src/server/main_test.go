@@ -20,9 +20,8 @@ func init() {
 	go func() { // Initialize the test server
 		main()
 	}()
-	time.Sleep(1 * time.Second) // Wait for the server to start
+	time.Sleep(3 * time.Second) // Wait for the server to start
 
-	setupDotenv()
 	eraseAllData()
 	generateFakeData()
 
@@ -30,7 +29,7 @@ func init() {
 	jwtToken, err = GenerateToken("testing", 0, 1*time.Hour)
 	log.Info("JWT Token: ", jwtToken)
 	if err != nil {
-		panic(err)
+		log.Fatal("Failed to generate JWT token: ", err)
 	}
 
 }

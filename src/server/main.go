@@ -9,7 +9,7 @@ var app = fiber.New()
 var appConfig AppConfig
 
 func main() {
-	//initialize the dotenv file
+	//must be initialized first
 	setupDotenv()
 
 	//setup config

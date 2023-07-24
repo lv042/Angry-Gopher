@@ -6,6 +6,9 @@ import (
 )
 
 func setupRoutes(app *fiber.App) {
+
+	app.Post("/health", handleHealthCheck)
+
 	protected := app.Group("/").Use(authMiddleware)
 
 	protected.Post("/register", handleRegister)
@@ -25,8 +28,6 @@ func setupRoutes(app *fiber.App) {
 	protected.Get("/devices", handleGetDevices)
 
 	protected.Post("/add/:id", handleAddCommandsAndInstructions)
-
-	protected.Post("/health", handleHealthCheck)
 }
 
 func serverListen(app *fiber.App) {
