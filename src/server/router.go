@@ -7,7 +7,8 @@ import (
 
 func setupRoutes(app *fiber.App) {
 
-	app.Post("/health", handleHealthCheck)
+	//health check should have no auth
+	app.Get("/health", handleHealthCheck)
 
 	protected := app.Group("/").Use(authMiddleware)
 
