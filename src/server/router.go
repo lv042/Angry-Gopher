@@ -25,6 +25,8 @@ func setupRoutes(app *fiber.App) {
 	protected.Get("/devices", handleGetDevices)
 
 	protected.Post("/add/:id", handleAddCommandsAndInstructions)
+
+	protected.Post("/health", handleHealthCheck)
 }
 
 func serverListen(app *fiber.App) {

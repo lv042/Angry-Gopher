@@ -204,3 +204,8 @@ func handleAddCommandsAndInstructions(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"message": "Added commands and instructions to device"})
 }
+
+func handleHealthCheck(ctx *fiber.Ctx) error {
+	//return 200
+	return ctx.SendStatus(fiber.StatusOK)
+}
