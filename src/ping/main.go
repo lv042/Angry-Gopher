@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	interval       = 12 * time.Minute
+	interval       = 10 * time.Minute
 	maxRetries     = 3
 	requestTimeout = 60 * time.Second
 )
@@ -26,6 +26,8 @@ func main() {
 		log.Fatal("HEALTH_CHECK environment variable is not set")
 	}
 
+	setupHealthCheck()
+
 	log.Info("Starting pinging: ", url)
 	for {
 		resp, err := pingTarget(url)
@@ -37,6 +39,25 @@ func main() {
 
 		time.Sleep(interval)
 	}
+}
+
+func setupHealthCheck() {
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		write, err := w.Write([]byte("ok"))
+		if err != nil {
+			log.Warn("Error writing response body: ", err)
+		}
+		if write != 2 {
+			log.Warn("Error writing response body: ", err)
+		}
+	})
+	go func() {
+		err := http.ListenAndServe(":8080", nil)
+		if err != nil {
+			log.Fatal("Error starting health check server: ", err)
+		}
+	}()
 }
 
 func pingTarget(url string) (string, error) {
