@@ -129,7 +129,6 @@ func setupDotenv() {
 		log.Warn("Error loading .env file: ", err)
 		log.Warn("This is not a problem if you are running the server in production")
 	}
-
 }
 
 func checkForSecret() {
