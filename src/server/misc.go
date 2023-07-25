@@ -55,8 +55,10 @@ func logDevices() {
 	}()
 }
 
-func generateFakeData() {
-	devices = []Device{
+func generateFakeData() []Device {
+	var fakeDevices []Device
+
+	fakeDevices = []Device{
 		{
 			ID: 1,
 			SystemInfo: SystemInfo{
@@ -75,7 +77,7 @@ func generateFakeData() {
 		},
 	}
 
-	for i := range devices {
+	for i := range fakeDevices {
 		commands := []string{"ls -a", "ls", "pwd"}
 
 		for _, cmd := range commands {
@@ -83,14 +85,14 @@ func generateFakeData() {
 			message := fmt.Sprintf(cmd)
 
 			// Create a new CommandResult instance using the newCommandResult function
-			commandResult := newCommandResult(&devices[i], message) // Assuming all commands are executed for simplicity
+			commandResult := newCommandResult(&fakeDevices[i], message, true) // Assuming all commands are executed for simplicity
 
 			// Add the CommandResult to the CommandList
-			devices[i].CommandList = append(devices[i].CommandList, commandResult)
+			fakeDevices[i].CommandList = append(fakeDevices[i].CommandList, commandResult)
 		}
 	}
 
-	for i := range devices {
+	for i := range fakeDevices {
 		instructions := []string{"install", "update", "uninstall"}
 
 		for _, instruction := range instructions {
@@ -98,13 +100,14 @@ func generateFakeData() {
 			message := fmt.Sprintf(instruction)
 
 			// Create a new InstructionResult instance using the newInstructionResult function
-			instructionResult := newInstructionResult(&devices[i], message) // Assuming all instructions are executed for simplicity
+			instructionResult := newInstructionResult(&fakeDevices[i], message, true) // Assuming all instructions are executed for simplicity
 
 			// Add the InstructionResult to the InstructionList
-			devices[i].InstructionList = append(devices[i].InstructionList, instructionResult)
+			fakeDevices[i].InstructionList = append(fakeDevices[i].InstructionList, instructionResult)
 		}
-
 	}
+
+	return fakeDevices
 }
 
 func updateLastOnline() {

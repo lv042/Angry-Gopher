@@ -6,9 +6,9 @@ import (
 	"time"
 )
 
-func newCommandResult(device *Device, cmd string) CommandResult {
+func newCommandResult(device *Device, cmd string, test bool) CommandResult {
 	id := len(device.CommandList) + 1
-	return CommandResult{
+	rt := CommandResult{
 		Command:      cmd,
 		Response:     "Not yet executed",
 		ID:           int32(id),
@@ -18,11 +18,16 @@ func newCommandResult(device *Device, cmd string) CommandResult {
 		Executed:     false,
 		Tries:        0,
 	}
+	if test {
+		rt.TimeOpened = time.Time{}
+	}
+
+	return rt
 }
 
-func newInstructionResult(device *Device, ins string) InstructionResult {
+func newInstructionResult(device *Device, ins string, test bool) InstructionResult {
 	id := len(device.InstructionList) + 1
-	return InstructionResult{
+	rt := InstructionResult{
 		Instruction:  ins,
 		Response:     "Not yet executed",
 		ID:           int32(id),
@@ -32,6 +37,11 @@ func newInstructionResult(device *Device, ins string) InstructionResult {
 		Executed:     false,
 		Tries:        0,
 	}
+	if test {
+		rt.TimeOpened = time.Time{}
+	}
+
+	return rt
 }
 
 func eraseAllData() {
@@ -45,7 +55,7 @@ type AppConfig struct {
 	Version        string
 }
 
-// Constants for config values
+// Version Constants for config values
 const (
 	Version = "1.0.0"
 )

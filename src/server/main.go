@@ -10,6 +10,7 @@ var app = fiber.New()
 var appConfig AppConfig
 var mongoClient *mongo.Client
 var collection *mongo.Collection
+var syncDB = true
 
 func main() {
 	//must be initialized first
@@ -26,7 +27,7 @@ func main() {
 	collection = mongoClient.Database("AngryGopher").Collection("Devices")
 
 	// Load devices data from MongoDB
-	loadDevicesFromMongoDB()
+	loadDevicesFromMongoDB(collection)
 
 	//for production
 	displayTestJWT()

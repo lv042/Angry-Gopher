@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/mongo"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +15,7 @@ import (
 )
 
 var jwtToken string
+var testCollection *mongo.Collection
 
 func init() {
 
@@ -23,7 +25,8 @@ func init() {
 	time.Sleep(10 * time.Second) // Wait for the server to start
 
 	eraseAllData()
-	generateFakeData()
+	testCollection = mongoClient.Database("TestAngryGopher").Collection("Devices")
+	devices = generateFakeData()
 
 	var err error
 	jwtToken, err = GenerateToken("testing", 0, 1*time.Hour)
@@ -457,7 +460,7 @@ func TestCheckVersion(t *testing.T) {
 
 func TestGenerateFakeData(t *testing.T) {
 	// Initialize the test data
-	generateFakeData()
+	devices = generateFakeData()
 
 	// Check if the devices slice is not empty
 	if len(devices) == 0 {
@@ -494,7 +497,7 @@ func TestGenerateFakeData(t *testing.T) {
 			}
 
 			// We can't compare the TimeOpened directly, but we can check if it's not a zero time
-			if commandResult.TimeOpened.IsZero() {
+			if !commandResult.TimeOpened.IsZero() {
 				t.Fatalf("Command TimeOpened is zero")
 			}
 
@@ -633,5 +636,154 @@ func TestAuthMiddleware_TamperedToken(t *testing.T) {
 	// Check the response status code
 	if res.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("Expected status code %d but got %d", http.StatusUnauthorized, res.StatusCode)
+	}
+}
+
+func TestLoadDevicesFromMongoDB(t *testing.T) {
+	syncDB = false
+
+	eraseAllData()
+	eraseAllMongoData(testCollection)
+
+	updateDevicesToMongoDB(testCollection)
+
+	devices = generateFakeData()
+	updateDevicesToMongoDB(testCollection)
+	time.Sleep(1 * time.Second)
+	eraseAllData()
+
+	// Load devices from MongoDB
+	loadDevicesFromMongoDB(testCollection)
+
+	if len(devices) != 2 {
+		t.Fatalf("Expected 2 devices, but got %d", len(devices))
+	}
+
+	expectedDevices := generateFakeData()
+
+	if !compareDevices(devices[0], expectedDevices[0]) {
+		t.Fatal("Devices do not match")
+	}
+	if !compareDevices(devices[1], expectedDevices[1]) {
+		t.Fatal("Devices do not match")
+	}
+
+}
+
+func compareDevices(d1, d2 Device) bool {
+
+	if d1.ID != d2.ID {
+		return false
+	}
+
+	for i, cmd := range d1.CommandList {
+		if !compareCommandResults(cmd, d2.CommandList[i]) {
+			return false
+		}
+	}
+	for i, ins := range d1.InstructionList {
+		if !compareInstructionResults(ins, d2.InstructionList[i]) {
+			return false
+		}
+	}
+
+	//set all time.Time fields to zero time
+	for i := range d1.CommandList {
+		d1.CommandList[i].TimeOpened = time.Time{}
+		d1.CommandList[i].TimeExecuted = time.Time{}
+	}
+	for i := range d1.InstructionList {
+		d1.InstructionList[i].TimeOpened = time.Time{}
+		d1.InstructionList[i].TimeExecuted = time.Time{}
+	}
+	for i := range d2.CommandList {
+		d2.CommandList[i].TimeOpened = time.Time{}
+		d2.CommandList[i].TimeExecuted = time.Time{}
+	}
+	for i := range d2.InstructionList {
+		d2.InstructionList[i].TimeOpened = time.Time{}
+		d2.InstructionList[i].TimeExecuted = time.Time{}
+	}
+
+	return reflect.DeepEqual(d1, d2)
+}
+
+func TestUpdateDevicesToMongoDB(t *testing.T) {
+	syncDB = false
+	eraseAllData()
+	eraseAllMongoData(testCollection)
+
+	// Clear the devices array
+	devices = []Device{}
+
+	// Insert test data into the collection
+	device1 := Device{
+		ID: 1,
+		SystemInfo: SystemInfo{
+			Hostname:     "TestDevice1",
+			OS:           "Linux",
+			Architecture: "x86_64",
+		},
+	}
+	device2 := Device{
+		ID: 2,
+		SystemInfo: SystemInfo{
+			Hostname:     "TestDevice2",
+			OS:           "Windows",
+			Architecture: "amd64",
+		},
+	}
+	devices = append(devices, device1, device2)
+
+	// Update devices to MongoDB
+	updateDevicesToMongoDB(testCollection)
+
+	time.Sleep(1 * time.Second)
+
+	// Load devices from MongoDB
+	loadDevicesFromMongoDB(testCollection)
+	if len(devices) != 2 {
+		t.Fatalf("Expected 2 devices, but got %d", len(devices))
+	}
+
+	eraseAllMongoData(testCollection)
+}
+
+func TestEraseAllMongoData(t *testing.T) {
+	syncDB = false
+	eraseAllData()
+
+	// Clear the devices array
+	devices = []Device{}
+
+	// Insert test data into the collection
+	device1 := Device{
+		ID: 1,
+		SystemInfo: SystemInfo{
+			Hostname:     "TestDevice1",
+			OS:           "Linux",
+			Architecture: "x86_64",
+		},
+	}
+	device2 := Device{
+		ID: 2,
+		SystemInfo: SystemInfo{
+			Hostname:     "TestDevice2",
+			OS:           "Windows",
+			Architecture: "amd64",
+		},
+	}
+	devices = append(devices, device1, device2)
+
+	// Update devices to MongoDB
+	updateDevicesToMongoDB(testCollection)
+
+	// Erase all data from MongoDB
+	eraseAllMongoData(testCollection)
+
+	// Load devices from MongoDB
+	loadDevicesFromMongoDB(testCollection)
+	if len(devices) != 0 {
+		t.Fatalf("Expected 0 devices, but got %d", len(devices))
 	}
 }

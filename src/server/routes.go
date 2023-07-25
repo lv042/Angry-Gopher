@@ -187,7 +187,7 @@ func handleAddCommandsAndInstructions(c *fiber.Ctx) error {
 	// Generate new CommandResult instances for each command in request.Commands
 	for _, cmd := range request.Commands {
 		// Create a new CommandResult instance using the newCommandResult function
-		commandResult := newCommandResult(device, cmd)
+		commandResult := newCommandResult(device, cmd, false)
 
 		// Add the CommandResult to the CommandList
 		device.CommandList = append(device.CommandList, commandResult)
@@ -195,7 +195,7 @@ func handleAddCommandsAndInstructions(c *fiber.Ctx) error {
 
 	// Append instructions to InstructionList
 	for _, instruction := range request.Instructions {
-		instructionResult := newInstructionResult(device, instruction)
+		instructionResult := newInstructionResult(device, instruction, false)
 
 		// Add the InstructionResult to the InstructionList
 		device.InstructionList = append(device.InstructionList, instructionResult)
