@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 func setupRoutes(app *fiber.App) {
@@ -10,7 +10,7 @@ func setupRoutes(app *fiber.App) {
 	//health check should have no auth
 	app.Get("/health", handleHealthCheck)
 
-	protected := app.Group("/").Use(authMiddleware)
+	protected := app.Group("/").Use(authMiddleware).Use(loggingMiddleware)
 
 	protected.Post("/register", handleRegister)
 
@@ -29,6 +29,14 @@ func setupRoutes(app *fiber.App) {
 	protected.Get("/devices", handleGetDevices)
 
 	protected.Post("/add/:id", handleAddCommandsAndInstructions)
+}
+
+func loggingMiddleware(c *fiber.Ctx) error {
+	log.Info(c.Method(), " ", c.Path())
+	log.Info("IP: ", c.IP())
+	log.Info("Body: ", string(c.Body()), "\n")
+
+	return c.Next()
 }
 
 func serverListen(app *fiber.App) {

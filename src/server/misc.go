@@ -12,12 +12,13 @@ func logDevices() {
 	time.Sleep(3 * time.Second) // Wait for the server to start
 	go func() {
 		for {
+			fmt.Println()
 			for _, device := range devices {
 				log.WithFields(log.Fields{
 					"ID":         device.ID,
 					"SystemInfo": device.SystemInfo,
 					"LastOnline": device.LastOnline,
-				}).Info("Logging device ------------------------> ")
+				}).Info("Logging device\n")
 
 				for _, command := range device.CommandList {
 					log.WithFields(log.Fields{
@@ -29,7 +30,7 @@ func logDevices() {
 						"Dir":          command.Dir,
 						"Executed":     command.Executed,
 						"Tries":        command.Tries,
-					}).Info("Command: ", command.Command)
+					}).Info("Command: ", command.Command, "\n")
 				}
 				for _, instruction := range device.InstructionList {
 					log.WithFields(log.Fields{
@@ -41,16 +42,18 @@ func logDevices() {
 						"Dir":          instruction.Dir,
 						"Executed":     instruction.Executed,
 						"Tries":        instruction.Tries,
-					}).Info("Instruction: ", instruction.Instruction)
+					}).Info("Instruction: ", instruction.Instruction, "\n")
 				}
+				fmt.Println()
 			}
 
 			log.WithFields(log.Fields{
 				"NumberOfDevices":    len(devices),
 				"NumberOfGoroutines": runtime.NumGoroutine(),
-			}).Info("General Information ------------------->")
+			}).Info("General Information\n")
+			fmt.Println()
 
-			time.Sleep(10 * time.Second)
+			time.Sleep(15 * time.Second)
 		}
 	}()
 }
