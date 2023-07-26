@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
+	"os"
 	"runtime"
 	"time"
 )
@@ -18,7 +19,8 @@ func logDevices() {
 					"ID":         device.ID,
 					"SystemInfo": device.SystemInfo,
 					"LastOnline": device.LastOnline,
-				}).Info("Logging device\n")
+				}).Info("Logging device")
+				fmt.Println()
 
 				for _, command := range device.CommandList {
 					log.WithFields(log.Fields{
@@ -30,7 +32,9 @@ func logDevices() {
 						"Dir":          command.Dir,
 						"Executed":     command.Executed,
 						"Tries":        command.Tries,
-					}).Info("Command: ", command.Command, "\n")
+					}).Info("Command: ", command.Command)
+					fmt.Println()
+
 				}
 				for _, instruction := range device.InstructionList {
 					log.WithFields(log.Fields{
@@ -42,7 +46,9 @@ func logDevices() {
 						"Dir":          instruction.Dir,
 						"Executed":     instruction.Executed,
 						"Tries":        instruction.Tries,
-					}).Info("Instruction: ", instruction.Instruction, "\n")
+					}).Info("Instruction: ", instruction.Instruction)
+					fmt.Println()
+
 				}
 				fmt.Println()
 			}
@@ -50,7 +56,8 @@ func logDevices() {
 			log.WithFields(log.Fields{
 				"NumberOfDevices":    len(devices),
 				"NumberOfGoroutines": runtime.NumGoroutine(),
-			}).Info("General Information\n")
+			}).Info("General Information")
+			fmt.Println()
 			fmt.Println()
 
 			time.Sleep(15 * time.Second)
@@ -149,4 +156,12 @@ func displayTestJWT() {
 	log.WithFields(log.Fields{
 		"JWT": testJWT,
 	}).Info("Test JWT")
+}
+
+func createTokenFile(token string) error {
+	err := os.WriteFile("../.token.txt", []byte(token), 0644)
+	if err != nil {
+		return err
+	}
+	return nil
 }

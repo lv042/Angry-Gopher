@@ -48,7 +48,7 @@ func eraseAllData() {
 	devices = []Device{}
 }
 
-type AppConfig struct {
+type ServerConfig struct {
 	DatabaseString string
 	Database       string
 	SecretKey      string
@@ -57,11 +57,11 @@ type AppConfig struct {
 
 // Version Constants for config values
 const (
-	Version = "1.0.0"
+	Version = "1.0.1"
 )
 
-func newAppConfig() AppConfig {
-	appConfig := AppConfig{
+func newAppConfig() ServerConfig {
+	appConfig := ServerConfig{
 		DatabaseString: os.Getenv("MONGO_CONNECTION_STRING"),
 		Database:       "Devices",
 		SecretKey:      os.Getenv("JWT_SECRET"),

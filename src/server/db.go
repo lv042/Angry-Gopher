@@ -50,7 +50,7 @@ func monitorChanges() {
 	go func() {
 
 		for {
-			if !syncDB {
+			if syncDB {
 				length := len(devices)
 				if len(devices) == 0 {
 					time.Sleep(3 * time.Second)

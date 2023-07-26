@@ -649,7 +649,7 @@ func TestLoadDevicesFromMongoDB(t *testing.T) {
 
 	devices = generateFakeData()
 	updateDevicesToMongoDB(testCollection)
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 	eraseAllData()
 
 	// Load devices from MongoDB
@@ -662,10 +662,14 @@ func TestLoadDevicesFromMongoDB(t *testing.T) {
 	expectedDevices := generateFakeData()
 
 	if !compareDevices(devices[0], expectedDevices[0]) {
-		t.Fatal("Devices do not match")
+		log.Info("Expected: ", expectedDevices[0])
+		log.Info("Got: ", devices[0])
+		t.Fatalf("Devices %d do not match", devices[0].ID)
 	}
 	if !compareDevices(devices[1], expectedDevices[1]) {
-		t.Fatal("Devices do not match")
+		log.Info("Expected: ", expectedDevices[1])
+		log.Info("Got: ", devices[1])
+		t.Fatalf("Devices %d do not match", devices[1].ID)
 	}
 
 }

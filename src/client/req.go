@@ -12,7 +12,7 @@ import (
 )
 
 // Function to generate a JWT token using the provided API and return the ID or an error
-func register(baseURL, token string, sysInfo *SystemInfo) (int, error) {
+func register(baseURL string, token string, sysInfo *SystemInfo) (int, error) {
 	apiEndpoint := baseURL + "/register"
 
 	payload, err := json.Marshal(sysInfo)
@@ -57,7 +57,7 @@ func register(baseURL, token string, sysInfo *SystemInfo) (int, error) {
 
 	id, ok := responseData["id"]
 	if !ok {
-		return 0, fmt.Errorf("Failed to get ID from API response")
+		return 0, fmt.Errorf("failed to get ID from API response")
 	}
 
 	// Log the success
@@ -69,11 +69,11 @@ func register(baseURL, token string, sysInfo *SystemInfo) (int, error) {
 	return id, nil
 }
 
-func getCommands(baseURL string, token string, id int) ([]string, error) {
-	apiEndpoint := baseURL + "/cmd/" + strconv.Itoa(int(id))
+func getCommands(token string, id int) ([]CommandResult, error) {
+	apiEndpoint := device.ServerURL + "/cmd/" + strconv.Itoa(id)
 
 	// Prepare the request
-	req, err := http.NewRequest("GET", apiEndpoint, bytes.NewBuffer(nil))
+	req, err := http.NewRequest("GET", apiEndpoint, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func getCommands(baseURL string, token string, id int) ([]string, error) {
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			log.Fatal(err)
+			log.Warn(err)
 		}
 	}(resp.Body)
 
@@ -101,37 +101,26 @@ func getCommands(baseURL string, token string, id int) ([]string, error) {
 	}
 
 	// Parse the response and extract the ID
-
-	var commandList CommandList
-	err = json.NewDecoder(resp.Body).Decode(&commandList)
+	var commandResults []CommandResult
+	err = json.NewDecoder(resp.Body).Decode(&commandResults)
 	if err != nil {
 		return nil, err
 	}
-	log.Info("Received commands: ", commandList.Commands)
 
-	return commandList.Commands, nil
+	return commandResults, nil
 }
 
-//func receiveInstructions(baseURL string, token string, id int8) {
-//	apiEndpoint := baseURL + "/ins/" + strconv.Itoa(int(id))
-//
-//}
+func postCommandResult(token string, id int, commandResult CommandResult) error {
+	apiEndpoint := device.ServerURL + "/cmd/" + strconv.Itoa(id)
 
-func postCommandResult(baseURL, token string, id int, command, result string) error {
-	apiEndpoint := baseURL + "/post-cmd/" + strconv.Itoa(id)
-
-	// Prepare the request payload
-	payload := map[string]string{
-		"command": command,
-		"result":  result,
-	}
-	jsonPayload, err := json.Marshal(payload)
+	// Prepare the request body
+	requestBody, err := json.Marshal(commandResult)
 	if err != nil {
 		return err
 	}
 
 	// Prepare the request
-	req, err := http.NewRequest("POST", apiEndpoint, bytes.NewBuffer(jsonPayload))
+	req, err := http.NewRequest("POST", apiEndpoint, bytes.NewReader(requestBody))
 	if err != nil {
 		return err
 	}
@@ -149,7 +138,7 @@ func postCommandResult(baseURL, token string, id int, command, result string) er
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			log.Fatal(err)
+			log.Warn(err)
 		}
 	}(resp.Body)
 

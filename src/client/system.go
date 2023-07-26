@@ -6,13 +6,7 @@ import (
 	"runtime"
 )
 
-type SystemInfo struct {
-	Hostname     string `json:"hostname"`
-	OS           string `json:"os"`
-	Architecture string `json:"architecture"`
-}
-
-func getSystemInfo() {
+func getSystemInfo() SystemInfo {
 	// Initialize the sysInfo variable with system information
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -22,7 +16,7 @@ func getSystemInfo() {
 	osName := runtime.GOOS
 	arch := runtime.GOARCH
 
-	sysInfo = &SystemInfo{
+	sysInfo := SystemInfo{
 		Hostname:     hostname,
 		OS:           osName,
 		Architecture: arch,
@@ -33,4 +27,6 @@ func getSystemInfo() {
 		"os":           sysInfo.OS,
 		"architecture": sysInfo.Architecture,
 	}).Info("System Information Initialized")
+
+	return sysInfo
 }

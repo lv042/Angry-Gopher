@@ -1,97 +1,78 @@
 package main
 
 import (
-	dotenv "github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
-	"os"
 	"time"
 )
 
 // Define the server URL
-var serverURL = "http://127.0.0.1:3000"
-var token = "token_fill_later"
-var client_id = 9999999999999999
-var sysInfo *SystemInfo
-
-type InstructionList struct {
-	Instructions []string `json:"instructions"`
-}
-
-type CommandList struct {
-	Commands []string `json:"commands"`
-}
+var device *Device
 
 func main() {
 	setupDotenv()
 	getSystemInfo()
+	device = newDevice()
 
 	var err error
-	token, err = CreateToken(os.Getenv("JWT_SECRET"))
-	if err != nil {
-		log.Fatal(err)
-	}
+	device.Token, err = readRegisterToken()
+	log.Info("Register token: ", device.Token)
+	checkError("Error while reading register token: ", err)
 
-	client_id, err = register(serverURL, token, sysInfo)
-	if err != nil {
-		log.Info(err)
-		time.Sleep(10 * time.Second)
-		main()
-	}
+	device.ID, err = register(device.ServerURL, device.Token, &device.SystemInfo)
+	checkError("Error while registering: ", err)
+	time.Sleep(5 * time.Second)
 	work()
-
 }
 
 func work() {
 	log.Info("Starting to receive tasks")
-	for {
-		commandWorkFlow()
 
-		time.Sleep(10 * time.Second)
-	}
-
+	commandWorkFlow()
+	time.Sleep(99999 * time.Second)
 }
 
 func commandWorkFlow() {
-	commands, err := getCommands(serverURL, token, 1)
-	if err != nil {
-		log.Info("Error while receiving tasks: ", err)
-		return
-	}
+	go func() {
+		for {
+			time.Sleep(1 * time.Second)
 
-	if len(commands) == 0 {
-		log.Info("Received no commands")
-		return
-	}
+			remoteCommands, err := getCommands(device.Token, device.ID)
+			checkError("Error while getting commands: ", err)
 
-	for _, command := range commands {
-		if command != "" {
-			// Execute the command
-			result := runCmd(command)
+			if len(remoteCommands) == 0 {
+				log.Info("Received no commands")
+				continue
+			}
 
-			// Log the command result
-			log.WithFields(log.Fields{
-				"command":  command,
-				"id":       client_id,
-				"Response": result.Message,
-				"Time":     result.Time,
-				"Dir":      result.Dir,
-				"Executed": result.Executed,
-			}).Info("Command Result:")
+			if len(remoteCommands) == len(device.CommandList) {
+				log.Info("Received no new commands")
+				continue
+			}
 
-			// Send the command result back to the server
-			err := postCommandResult(serverURL, token, 1, command, result.Message)
-			if err != nil {
-				log.Info("Error posting command result: ", err)
-				return
+			device.CommandList = remoteCommands
+			// Repeat 3 times
+			for i := 1; i <= 3; i++ {
+				for idx, command := range device.CommandList {
+					if command.Executed {
+						continue
+					}
+					if command.Tries >= 3 {
+						log.Infof("Command '%s' has been tried 3 times, but still not executed.", command.Command)
+						continue
+					}
+
+					updatedCommand := runCmd(command) // Get the updated command
+
+					device.CommandList[idx] = updatedCommand // Update the original slice with the updated command
+
+					logCommandResult(updatedCommand)
+
+					err = postCommandResult(device.Token, device.ID, updatedCommand)
+					checkError("Error while posting command result: ", err)
+
+					log.Info("Posted command result")
+				}
 			}
 		}
-		time.Sleep(3 * time.Second)
-	}
-}
-
-func setupDotenv() {
-	err := dotenv.Load("../.env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	}()
 }
