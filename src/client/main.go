@@ -21,6 +21,7 @@ func main() {
 	device.ID, err = register(device.ServerURL, device.Token, &device.SystemInfo)
 	checkError("Error while registering: ", err)
 	time.Sleep(5 * time.Second)
+
 	work()
 }
 

@@ -23,7 +23,6 @@ type InstructionResult struct {
 	ID           int32     `json:"id"`
 	TimeOpened   time.Time `json:"time_opened"`
 	TimeExecuted time.Time `json:"time_executed"`
-	Dir          string    `json:"dir"`
 	Executed     bool      `json:"executed"`
 	Tries        int32     `json:"tries"`
 }

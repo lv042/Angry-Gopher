@@ -24,7 +24,7 @@ func init() {
 	}()
 	time.Sleep(10 * time.Second) // Wait for the server to start
 
-	eraseAllData()
+	eraseAllLocalData()
 	testCollection = mongoClient.Database("TestAngryGopher").Collection("Devices")
 	devices = generateFakeData()
 
@@ -642,7 +642,7 @@ func TestAuthMiddleware_TamperedToken(t *testing.T) {
 func TestLoadDevicesFromMongoDB(t *testing.T) {
 	syncDB = false
 
-	eraseAllData()
+	eraseAllLocalData()
 	eraseAllMongoData(testCollection)
 
 	updateDevicesToMongoDB(testCollection)
@@ -650,7 +650,7 @@ func TestLoadDevicesFromMongoDB(t *testing.T) {
 	devices = generateFakeData()
 	updateDevicesToMongoDB(testCollection)
 	time.Sleep(2 * time.Second)
-	eraseAllData()
+	eraseAllLocalData()
 
 	// Load devices from MongoDB
 	loadDevicesFromMongoDB(testCollection)
@@ -714,7 +714,7 @@ func compareDevices(d1, d2 Device) bool {
 
 func TestUpdateDevicesToMongoDB(t *testing.T) {
 	syncDB = false
-	eraseAllData()
+	eraseAllLocalData()
 	eraseAllMongoData(testCollection)
 
 	// Clear the devices array
@@ -755,7 +755,7 @@ func TestUpdateDevicesToMongoDB(t *testing.T) {
 
 func TestEraseAllMongoData(t *testing.T) {
 	syncDB = false
-	eraseAllData()
+	eraseAllLocalData()
 
 	// Clear the devices array
 	devices = []Device{}

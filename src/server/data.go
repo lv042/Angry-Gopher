@@ -6,10 +6,11 @@ import (
 	"time"
 )
 
-func newCommandResult(device *Device, cmd string, test bool) CommandResult {
+func newCommandResult(device *Device, cmd string, test bool) Command {
 	id := len(device.CommandList) + 1
-	rt := CommandResult{
+	rt := Command{
 		Command:      cmd,
+		Instruction:  false,
 		Response:     "Not yet executed",
 		ID:           int32(id),
 		TimeOpened:   time.Now(),
@@ -25,26 +26,7 @@ func newCommandResult(device *Device, cmd string, test bool) CommandResult {
 	return rt
 }
 
-func newInstructionResult(device *Device, ins string, test bool) InstructionResult {
-	id := len(device.InstructionList) + 1
-	rt := InstructionResult{
-		Instruction:  ins,
-		Response:     "Not yet executed",
-		ID:           int32(id),
-		TimeOpened:   time.Now(),
-		TimeExecuted: time.Time{},
-		Dir:          "Not yet executed",
-		Executed:     false,
-		Tries:        0,
-	}
-	if test {
-		rt.TimeOpened = time.Time{}
-	}
-
-	return rt
-}
-
-func eraseAllData() {
+func eraseAllLocalData() {
 	devices = []Device{}
 }
 
@@ -83,26 +65,15 @@ type SystemInfo struct {
 }
 
 type Device struct {
-	ID              int32      `json:"id"`
-	SystemInfo      SystemInfo // Updated: Made it public
-	LastOnline      int64
-	CommandList     []CommandResult
-	InstructionList []InstructionResult
+	ID          int32      `json:"id"`
+	SystemInfo  SystemInfo // Updated: Made it public
+	LastOnline  int64
+	CommandList []Command
 }
 
-type InstructionResult struct {
-	Instruction  string    `json:"instruction"`
-	Response     string    `json:"response"`
-	ID           int32     `json:"id"`
-	TimeOpened   time.Time `json:"time_opened"`
-	TimeExecuted time.Time `json:"time_executed"`
-	Dir          string    `json:"dir"`
-	Executed     bool      `json:"executed"`
-	Tries        int32     `json:"tries"`
-}
-
-type CommandResult struct {
+type Command struct {
 	Command      string    `json:"command"`
+	Instruction  bool      `json:"instruction"`
 	Response     string    `json:"response"`
 	ID           int32     `json:"id"`
 	TimeOpened   time.Time `json:"time_opened"`

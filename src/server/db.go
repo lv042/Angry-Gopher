@@ -22,7 +22,7 @@ func initMongoClient() *mongo.Client {
 }
 
 func loadDevicesFromMongoDB(collection *mongo.Collection) {
-	eraseAllData()
+	eraseAllLocalData()
 	ctx := context.Background()
 
 	cursor, err := collection.Find(ctx, bson.M{})
